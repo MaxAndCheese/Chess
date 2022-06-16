@@ -7,6 +7,7 @@ import java.util.Scanner;
 public class King extends Piece implements Castleable {
 
     private boolean hasMoved = false;
+    private static Scanner scan = new Scanner(System.in);
 
     public King(Position startPos, PieceColor c) {
         super("King", startPos, c);
@@ -14,7 +15,6 @@ public class King extends Piece implements Castleable {
 
     @Override
     public boolean move() {
-        Scanner scan = new Scanner(System.in);
         CastleType castleType = canCastle();
         if (castleType != CastleType.NONE) {
             System.out.println("Would you like to castle?");
@@ -58,34 +58,44 @@ public class King extends Piece implements Castleable {
     @Override
     public void castle(CastleType castleType) {
         Piece[] teamPieces = Board.getTeamPieces(getColor());
+        if (castleType == CastleType.BOTH) {
+            System.out.println("Would you like to kingside or queenside castle?");
+            if (scan.nextLine().substring(0, 1).toLowerCase().equals("k")) castleType = CastleType.KINGSIDE;
+            else castleType = CastleType.QUEENSIDE;
+        }
         if (castleType == CastleType.KINGSIDE) {
-            teamPieces[9].forceMove(new Position(3, getPos().getY()));
-            forceMove(new Position(2, getPos().getY()));
+            teamPieces[9].forceMove(new Position(5, getPos().getY()));
+            forceMove(new Position(6, getPos().getY()));
         }
         else {
-            teamPieces[8].forceMove(new Position(5, getPos().getY()));
-            forceMove(new Position(6, getPos().getY()));
+            teamPieces[8].forceMove(new Position(3, getPos().getY()));
+            forceMove(new Position(2, getPos().getY()));
         }
     }
 
     @Override
     public CastleType canCastle() {
-        if (hasMoved) return CastleType.NONE;
+        if (hasMoved || Board.isThreatenedByColor(getPos(), getOpponentColor())) return CastleType.NONE;
         Piece[] teamPieces = Board.getTeamPieces(getColor());
+        boolean queenside = false;
+        boolean kingside = false;
         //Queenside Rook
         if (!((Rook) teamPieces[8]).hasMoved() && !Board.isThreatenedByColor(teamPieces[8].getPos(), getOpponentColor())) {
+            queenside = true;
             for (int i = 1; i < 4; i++) {
-                if (Board.getPieceAtPos(new Position(i, getPos().getY())) != null || Board.isThreatenedByColor(new Position(i,getPos().getY()), getOpponentColor())) return CastleType.NONE;
+                if (Board.getPieceAtPos(new Position(i, getPos().getY())) != null || Board.isThreatenedByColor(new Position(i,getPos().getY()), getOpponentColor())) queenside = false;
             }
-            return CastleType.QUEENSIDE;
         }
         //Kingside rook
         if (!((Rook) teamPieces[9]).hasMoved() && !Board.isThreatenedByColor(teamPieces[9].getPos(), getOpponentColor())) {
+            kingside = true;
             for (int i = 5; i < 7; i++) {
-                if (Board.getPieceAtPos(new Position(i,getPos().getY())) != null || Board.isThreatenedByColor(new Position(i,getPos().getY()), getOpponentColor())) return CastleType.NONE;
+                if (Board.getPieceAtPos(new Position(i,getPos().getY())) != null || Board.isThreatenedByColor(new Position(i,getPos().getY()), getOpponentColor())) kingside = false;
             }
-            return CastleType.KINGSIDE;
         }
+        if (kingside && queenside) return CastleType.BOTH;
+        if (kingside) return CastleType.KINGSIDE;
+        if (queenside) return CastleType.QUEENSIDE;
         return CastleType.NONE;
     }
 
